@@ -2,8 +2,11 @@
 #include "types.h"
 
 int main(){
-    Vec2 v1 = {1, 4};
-    Vec2 v2 = {2, 3};
-    std::cout << v1+v2 << '\n' << v1-v2 << std::endl;
+    float a = 0.2f;
+    float b = 0.4f;
+    Mat2 M = Calculations::angle2RotMat(a);
+    Mat2 N = Calculations::angle2RotMat(b);
+    Mat2 P = Calculations::angle2RotMat(a+b);
+    std::cout << M << M*N << '\n' << P << std::endl;
     return 0;
 }

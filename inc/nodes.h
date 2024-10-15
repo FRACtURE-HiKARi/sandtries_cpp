@@ -16,6 +16,6 @@ class Node{
 */
 
 class Visible: public Node{
-    virtual void show();
+    virtual void show() = 0;
 };
 
