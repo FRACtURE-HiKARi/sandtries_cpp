@@ -10,9 +10,9 @@
 
 class Scene {
 protected:
-    std::list <Node> objects;
+    std::vector <Node> objects;
 public:
-    std::list <Node> getObjects();
+    std::vector <Node> getObjects();
     void addObject(Node& object);
 };
 

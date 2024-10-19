@@ -1,12 +1,29 @@
 #include <iostream>
-#include "types.h"
+#include "sandtries.h"
+#include <windows.h>
+
+// TODO: collision handling
+// TODO: Test GJK on Ball Collider
+// TODO: optimize support func & BroadPhase
 
 int main(){
-    float a = 0.2f;
-    float b = 0.4f;
-    Mat2 M = Calculations::angle2RotMat(a);
-    Mat2 N = Calculations::angle2RotMat(b);
-    Mat2 P = Calculations::angle2RotMat(a+b);
-    std::cout << M << M*N << '\n' << P << std::endl;
+    initgraph(320, 640);
+    PhysicsEngine e(10);
+    TestObj o(125, 100);
+    TestStatic s(100, 40);
+    e.addRigid(o);
+    e.addStatic(s);
+    o.setPos({220, 400});
+    s.setPos({130, 480});
+    float dt = 1.f/30;
+    while (true) {
+        o.addTorque(500);
+        cleardevice();
+        e.updateObjects(dt);
+        o.show();
+        s.show();
+        //std::cout << o.RigidBody::getPosition();
+        Sleep((unsigned)(dt * 1000));
+    }
     return 0;
 }
