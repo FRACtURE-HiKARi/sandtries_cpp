@@ -18,6 +18,7 @@ protected:
 public:
     PhysicsObject();
     Vec2 getPosition() const {return global_centroid;}
+    float getMass() const { return mass; }
     virtual void setPosition(const Vec2 &p) {global_centroid = p;}
 };
 

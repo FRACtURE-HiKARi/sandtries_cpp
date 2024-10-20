@@ -4,6 +4,7 @@
 
 #include "physics_engine.h"
 #include <graphics.h>
+#include <ctime>
 
 void BasicBroadPhase::addAABB(AABB *aabb) {
     aabbs.push_back(aabb);
@@ -156,7 +157,7 @@ Vec2 CollisionHandler::normTo(const Vec2 &A, const Vec2 &B, const Vec2 &O) {
 void PhysicsEngine::applyGravity() {
     Vec2 gravityForce = {0, gravity};
     for (RigidBody* object: rigid_bodies) {
-        object->addForce(gravityForce);
+        object->addForce(gravityForce * object->getMass());
     }
 }
 
@@ -177,6 +178,7 @@ void PhysicsEngine::updateObjects(float dt) {
         circle(20, 20, 10);
         if (CollisionHandler::GJK(pair))
             fillcircle(20, 20, 10);
+
     }
 
 }

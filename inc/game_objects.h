@@ -15,9 +15,9 @@ public:
 };
 
 class TestStatic: public Visible, public StaticBody {
-    int w, h;
+    int r;
 public:
-    TestStatic(int w, int h);
+    TestStatic(int r);
     void show() override;
     void setPos(const Vec2& pose);
 };
