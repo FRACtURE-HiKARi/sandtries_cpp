@@ -6,9 +6,9 @@
 #include "game_engine.h"
 
 class TestObj: public Visible, public RigidBody {
-    float w, h;
+    float r;
 public:
-    explicit TestObj(float w, float h);
+    explicit TestObj(float r);
     void show() override;
     Vec2 pos();
     void setPos(const Vec2& pose);

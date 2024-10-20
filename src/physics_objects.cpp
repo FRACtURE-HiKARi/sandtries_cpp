@@ -246,7 +246,8 @@ void RigidBody::clear() {
 inline AABB operator+ (const AABB& aabb, const Vec2& v) {
     return {
         aabb.lower_left + v,
-        aabb.upper_right + v
+        aabb.upper_right + v,
+        aabb.collider
     };
 }
 

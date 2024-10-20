@@ -9,11 +9,11 @@
 int main(){
     initgraph(320, 640);
     PhysicsEngine e(10);
-    TestObj o(125, 100);
+    TestObj o(75);
     TestStatic s(100, 40);
     e.addRigid(o);
     e.addStatic(s);
-    o.setPos({220, 400});
+    o.setPos({250, 320});
     s.setPos({130, 480});
     float dt = 1.f/30;
     while (true) {

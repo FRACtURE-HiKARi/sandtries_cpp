@@ -4,18 +4,16 @@
 
 #include "game_objects.h"
 
-TestObj::TestObj(float w, float h) {
-    this->w = w;
-    this->h = h;
-    addCollider(new RectangleCollider(1, w, h));
+TestObj::TestObj(float r) {
+    this->r = r;
+    addCollider(new BallCollider(1,r ));
 }
 
 void TestObj::show() {
-    auto* c = (RectangleCollider*)collider_list.front();
+    auto* c = (BallCollider*)collider_list.front();
     AABB* aabb = c->getAABB();
     POINT points[4];
-    for (int i = 0; i < 4; i++)
-        points[i] = {(long)(c->vs[i].x), (long)(c->vs[i].y)};
+    circle((long)global_centroid.x, (long)global_centroid.y, (long)r);
     polygon(points, 4);
     rectangle(
             aabb->lower_left.x,

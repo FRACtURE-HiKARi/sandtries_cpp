@@ -127,7 +127,7 @@ bool CollisionHandler::GJK(ColliderPair pair) {
                 return false;
             }
             else if (n_ac * a > 0) {
-                vertices.remove(c);
+                vertices.remove(b);
                 *d = n_ac * -1;
                 return false;
             }
