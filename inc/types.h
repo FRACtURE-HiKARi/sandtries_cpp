@@ -5,6 +5,8 @@
 #pragma once
 #include <iostream>
 #define FLOAT_ERROR 1e-5
+
+struct Vec3;
 typedef struct Vec2 {
     float x;
     float y;
@@ -12,7 +14,19 @@ typedef struct Vec2 {
     float abs() const;
     Vec2& operator= (const Vec2 &other);
     bool operator== (const Vec2 &other) const;
+    Vec3 unsqueeze(float z) const;
 } Vec2;
+
+typedef struct Vec3 {
+    float x;
+    float y;
+    float z;
+    void zero() {x = y = z = 0.f;}
+    float abs() const;
+    Vec3& operator= (const Vec3 &other);
+    bool operator== (const Vec3 &other) const;
+    Vec2 squeeze() { return {x, y};}
+} Vec3;
 
 // TODO: overload operator[]
 typedef struct Mat2 {
@@ -23,6 +37,16 @@ typedef struct Mat2 {
     Mat2 transpose() const;
     Mat2 inv() const;
 } Mat2;
+
+typedef struct Mat3 {
+    Vec3 row1;
+    Vec3 row2;
+    Vec3 row3;
+    void zero();
+    Mat3& operator= (const Mat3 &other);
+    Mat3 transpose() const;
+    //Mat3 inv() const;
+} Mat3;
 
 typedef struct Ray2 {
     Vec2 start;
@@ -40,8 +64,19 @@ float operator* (const Vec2 &a, const Vec2 &b);
 Vec2 operator* (const Vec2 &a, float b);
 Vec2 operator/ (const Vec2 &a, float b);
 
+Vec3 operator+ (const Vec3 &a, const Vec3 &b);
+Vec3 operator- (const Vec3 &a, const Vec3 &b);
+float operator* (const Vec3 &a, const Vec3 &b);
+Vec3 operator* (const Vec3 &a, float b);
+Vec3 operator/ (const Vec3 &a, float b);
+
 Vec2 operator* (const Mat2 &m, const Vec2 &b);
 Mat2 operator* (const Mat2 &m, const Mat2 &n);
+
+Vec3 operator* (const Mat3 &m, const Vec3 &b);
+Mat3 operator* (const Mat3 &m, const Mat3 &n);
+
+Mat3 getPose(const Mat2 &rot, const Vec3 &p);
 
 class Calculations {
     public:
@@ -56,6 +91,7 @@ class Calculations {
     static float angle(const Vec2 &a, const Vec2 &b);
     static Vec2 orthDecompo(const Mat2 &sys, const Vec2& v);
     static Vec2 orthDecompo(const Vec2 &v0, const Vec2 &v1, const Vec2 &v2);
+    static Vec3 cross(const Vec3 &a, const Vec3 &b);
     template<typename Container>
     static size_t argmax(const Container& c) {
         return std::distance(c.begin(), std::max_element(c.begin(), c.end()));

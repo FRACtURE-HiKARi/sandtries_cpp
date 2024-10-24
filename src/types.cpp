@@ -107,6 +107,14 @@ Vec2 Calculations::orthDecompo(const Vec2 &v0, const Vec2 &v1, const Vec2 &v2) {
     return orthDecompo(sysT.transpose(), v2);
 }
 
+Vec3 Calculations::cross(const Vec3 &a, const Vec3 &b) {
+    return Vec3{
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x
+    };
+}
+
 Mat2 Mat2::transpose() const{
     return {
         {row1.x, row2.x},
@@ -125,6 +133,10 @@ float Vec2::abs() const {
 
 bool Vec2::operator==(const Vec2 &other) const {
     return float_equlas(x, other.x) && float_equlas(y, other.y);
+}
+
+Vec3 Vec2::unsqueeze(float z) const{
+    return {x, y, z};
 }
 
 
@@ -155,4 +167,96 @@ std::ostream& operator<< (std::ostream& out, const Vec2 &v) {
 std::ostream& operator<< (std::ostream& out, const Mat2 &m) {
     out << m.row1 << '\n' << m.row2;
     return out;
+}
+
+float Vec3::abs() const {
+    return std::sqrtf(x*x + y*y + z*z);
+}
+
+Vec3 &Vec3::operator=(const Vec3 &other) = default;
+
+bool Vec3::operator==(const Vec3 &other) const {
+    return \
+        float_equlas(x, other.x) && \
+        float_equlas(y, other.y) && \
+        float_equlas(z, other.z);
+}
+
+
+void Mat3::zero() {
+    row1.zero();
+    row2.zero();
+    row3.zero();
+}
+
+Mat3 Mat3::transpose() const {
+    return {
+            {row1.x, row2.x, row3.x},
+            {row1.y, row2.y, row3.y},
+            {row1.z, row2.z, row3.z},
+    };
+}
+
+Mat3 &Mat3::operator=(const Mat3 &other) = default;
+
+Vec3 operator+ (const Vec3 &a, const Vec3 &b) {
+    return {
+        a.x + b.x,
+        a.y + b.y,
+        a.z + b.z
+    };
+}
+
+Vec3 operator- (const Vec3 &a, const Vec3 &b) {
+    return {
+        a.x - b.x,
+        a.y - b.y,
+        a.z - b.z
+    };
+}
+
+float operator* (const Vec3 &a, const Vec3 &b) {
+    return a.x*b.x + a.y*b.y + a.z*b.z;
+}
+
+Vec3 operator* (const Vec3 &a, float b) {
+    return {
+        a.x * b,
+        a.y * b,
+        a.z * b
+    };
+}
+
+Vec3 operator/ (const Vec3 &a, float b) {
+    return {
+        a.x / b,
+        a.y / b,
+        a.z / b
+    };
+}
+
+Vec3 operator* (const Mat3 &m, const Vec3 &b) {
+    return {
+        m.row1 * b,
+        m.row2 * b,
+        m.row3 * b
+    };
+}
+
+Mat3 operator* (const Mat3 &m, const Mat3 &n) {
+    Mat3 t = n.transpose();
+    Mat3 rt = {
+            m * t.row1,
+            m * t.row2,
+            m * t.row3
+    };
+    return rt.transpose();
+}
+
+Mat3 getPose(const Mat2 &rot, const Vec3 &p) {
+    return {
+            rot.row1.unsqueeze(p.x),
+            rot.row2.unsqueeze(p.y),
+            {0, 0, 1}
+    };
 }
