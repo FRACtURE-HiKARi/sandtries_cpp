@@ -3,8 +3,9 @@
 //
 
 #include "physics_engine.h"
+#include "game_engine.h"
 #include <graphics.h>
-#include <ctime>
+#include <sstream>
 
 void BasicBroadPhase::addAABB(AABB *aabb) {
     aabbs.push_back(aabb);
@@ -94,15 +95,12 @@ Vec2 CollisionHandler::getMinkowskiDiff(const Collider *c1, const Collider *c2, 
 }
 
 // TODO: test the correctness of this algorithm.
-bool CollisionHandler::GJK(ColliderPair pair) {
+GJKResult CollisionHandler::GJK(ColliderPair pair) {
     const Collider* c1 = pair.first;
     const Collider* c2 = pair.second;
     typedef std::pair<Vec2, Vec2> Edge;
     typedef struct Triangle {
-        std::list<Vec2> vertices;
-        void append(const Vec2 &v) {
-            vertices.push_front(v);
-        }
+        Simplex vertices;
         bool handle(Vec2 *d) {
             if (vertices.size() == 2)
                 return lineCase(d);
@@ -137,21 +135,130 @@ bool CollisionHandler::GJK(ColliderPair pair) {
     } Triangle;
     Triangle triangle;
     Vec2 dir = Calculations::unit(c1->getPosition() - c2->getPosition());
-    Vec2 v = getMinkowskiDiff(c1, c2, dir);
-    triangle.append(v);
-    dir = Calculations::unit(v * -1);
+    Vec2 V = getMinkowskiDiff(c1, c2, dir);
+    triangle.vertices.push_front(V);
+    dir = Calculations::unit(V * -1);
     while (true) {
-        v = getMinkowskiDiff(c1, c2, dir);
-        if (v * dir < 0) return false;
-        triangle.append(v);
-        if (triangle.handle(&dir))
-            return true;
+        V = getMinkowskiDiff(c1, c2, dir);
+        if (V * dir < 0) { // false return
+            Simplex s = triangle.vertices;
+            return std::make_pair(false, s);
+        }
+        triangle.vertices.push_front(V);
+        if (triangle.handle(&dir)) { // true return
+            Simplex s = triangle.vertices;
+            return std::make_pair(true, s);
+        }
     }
 }
 
 Vec2 CollisionHandler::normTo(const Vec2 &A, const Vec2 &B, const Vec2 &O) {
     if (A == B) return {0};
     return Calculations::normal(A-O, A - B) * -1;
+}
+
+float distToOrigin(const Vec2 &A, const Vec2 &B) {
+    float S2 = std::fabs(A.x*B.y - A.y*B.x);
+    return S2 / (A-B).abs();
+}
+
+EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
+    typedef std::pair<Vec2, Vec2> Edge;
+    typedef struct VE {
+        Vec2 vertex;
+        float angle;
+        float distToOrigin;
+    } VE;
+    typedef struct Polygon {
+        std::list<VE> edges;
+        VE makeEdge(Vec2 &V, Vec2 &next) {
+            return {
+               V,
+               std::atan2f(V.y, V.x) + m_pi,
+               distToOrigin(V, next)
+            };
+        }
+        void init(Simplex &s) {
+            s.sort([](const Vec2 &a, const Vec2 &b) -> bool {
+                return std::atan2f(a.y, a.x) < std::atan2f(b.y, b.x);
+            });
+            edges.clear();
+            for (auto it = s.begin(); it != s.end(); it++) {
+                auto next = std::next(it);
+                if (next == s.end()) next = s.begin();
+                    edges.push_back(makeEdge(*it, *next));
+            }
+        }
+        Edge getNearest() {
+            int no = (int)Calculations::argmax(edges, [](const VE& e1, const VE& e2) -> bool {
+                return e1.distToOrigin > e2.distToOrigin;
+            }); //TODO: cache this argmax
+            auto it = edges.begin();
+            auto first = std::next(it, no);
+            auto second = std::next(first);
+            if (second == edges.end()) second = edges.begin();
+            return std::make_pair(first->vertex, second->vertex);
+        }
+        // TODO: maintain covexity on some cases (push when covering previous vertex)
+        // may be check new vertex is outside of the neighbor edges.
+        void push(Vec2 &V) {
+            float angle = std::atan2f(V.y, V.x) + m_pi;
+            auto first = edges.begin();
+            auto second = std::prev(edges.end());
+            auto insert = second;
+            for (; first != edges.end(); first++) {
+                second = std::next(first);
+                if (second == edges.end()) {
+                    if (angle > edges.front().angle) insert = edges.end();
+                    else insert = edges.begin();
+                    second = edges.begin();
+                    break;
+                }
+                if ((angle > first->angle) && (angle < second->angle)) {
+                    insert = second;
+                    break;
+                }
+            }
+            edges.insert(insert, {
+                    V,
+                    angle,
+                    distToOrigin(V, second->vertex)
+            });
+            // update the it-V edge
+            first->distToOrigin = distToOrigin(first->vertex, V);
+        }
+    } Polygon;
+    Collider *c1 = pair.first;
+    Collider *c2 = pair.second;
+    Vec2 V, dir;
+    Polygon polygon;
+    Edge nearest;
+    polygon.init(s);
+    float last = INFINITY;
+    while (true) {
+        nearest = polygon.getNearest();
+        dir = normTo(nearest.first, nearest.second, {0}) * -1;
+        float now = distToOrigin(nearest.first, nearest.second);
+        V = getMinkowskiDiff(c1, c2, dir);
+        //terminates;
+        if (now >= last)
+            break;
+        last = now;
+        if (V * dir < 0)
+            break;
+        if (V == nearest.first || V == nearest.second)
+            break;
+        /*
+        Vec2 v0 = nearest.first - nearest.second;
+        Vec2 v1 = V - nearest.first;
+        Vec2 v2 = V - nearest.second;
+        if (v1.abs() + v2.abs() - v0.abs()< 0.001)
+            break;
+            */
+        polygon.push(V);
+    }
+    Vec2 normal = normTo(nearest.first, nearest.second, {0});
+    return std::make_pair(last, normal);
 }
 
 void PhysicsEngine::applyGravity() {
@@ -176,9 +283,14 @@ void PhysicsEngine::updateObjects(float dt) {
     ColliderPairList candidates = broadPhase.getAllPairs();
     for (ColliderPair pair: candidates) {
         circle(20, 20, 10);
-        if (CollisionHandler::GJK(pair))
+        GJKResult gjkResult = CollisionHandler::GJK(pair);
+        if (gjkResult.first) {
             fillcircle(20, 20, 10);
-
+            EPAResult epaResult = CollisionHandler::EPA(pair, gjkResult.second);
+            std::stringstream ss;
+            ss << "Depth: " << epaResult.first;
+            renderer.drawText(ss.str(), 50, 30);
+        }
     }
 
 }

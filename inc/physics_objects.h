@@ -20,6 +20,7 @@ public:
     Vec2 getPosition() const {return global_centroid;}
     float getMass() const { return mass; }
     virtual void setPosition(const Vec2 &p) {global_centroid = p;}
+    void setRotation(const Mat2 &r) {rotation = r;}
 };
 
 // describes the geometric shape of colliding objects.

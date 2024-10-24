@@ -31,9 +31,10 @@ void TestObj::setPos(const Vec2 &pose) {
     RigidBody::setPosition(pose);
 }
 
-TestStatic::TestStatic(int r): StaticBody() {
-    addCollider(new BallCollider(1, (float)r));
-    this->r = r;
+TestStatic::TestStatic(int w, int h): StaticBody() {
+    addCollider(new RectangleCollider(1, (float)w, (float)h));
+    this->w = w;
+    this->h = h;
 }
 
 void TestStatic::setPos(const Vec2 &pose) {
@@ -41,12 +42,19 @@ void TestStatic::setPos(const Vec2 &pose) {
 }
 
 void TestStatic::show() {
-    AABB *aabb = collider_list.front()->getAABB();
-    circle((long)global_centroid.x, (long)global_centroid.y, r);
+    RectangleCollider* c = (RectangleCollider*)collider_list.front();
+    AABB *aabb = c->getAABB();
     rectangle(
             aabb->lower_left.x,
             aabb->upper_right.y,
             aabb->upper_right.x,
             aabb->lower_left.y
     );
+    POINT ps[4] = {
+            {(long)c->vs[0].x, (long)c->vs[0].y},
+            {(long)c->vs[1].x, (long)c->vs[1].y},
+            {(long)c->vs[2].x, (long)c->vs[2].y},
+            {(long)c->vs[3].x, (long)c->vs[3].y},
+    };
+    polygon(ps, 4);
 }

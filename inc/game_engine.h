@@ -8,17 +8,33 @@
 #include "utils.h"
 #include <graphics.h>
 
+typedef std::list<Node*> ObjectList;
+typedef struct Color {
+    byte r;
+    byte g;
+    byte b;
+} Color;
+
 class Scene {
 protected:
-    std::vector <Node> objects;
+    ObjectList objects;
+    ObjectList visible;
 public:
-    std::vector <Node> getObjects();
-    void addObject(Node& object);
+    ObjectList& getObjects() {return objects; }
+    ObjectList& getVisible() {return visible; }
+    void addObject(Node &object) {objects.push_back(&object);}
+    void addVisible(Visible &v) {visible.push_back(&v);}
 };
 
 class Renderer {
-
+    int width, height;
+    DWORD* imageBuffer;
+    HWND hwnd;
 public:
     Renderer(int window_width, int window_height);
-    void render(const Scene& scene);
+    void render(Scene &scene);
+    static void drawText(const std::string& str, RECT* rect, unsigned format);
+    void drawText(const std::string& str, long left, long top);
 };
+
+static Renderer renderer(320, 640);

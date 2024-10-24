@@ -270,15 +270,11 @@ bool AABB::contains(const Vec2 &v) const {
 
 bool AABB::meets(const AABB *a, const AABB *b) {
     return
-            a->contains(b->upper_right) || \
-            a->contains(b->lower_left) || \
-            a->contains({b->upper_right.x, b->lower_left.y}) || \
-            a->contains({b->lower_left.x, b->upper_right.y}) || \
-            b->contains(a->upper_right) || \
-            b->contains(a->lower_left) || \
-            b->contains({a->upper_right.x, a->lower_left.y}) || \
-            b->contains({a->lower_left.x, a->upper_right.y}) \
-        ;
+            !(a->lower_left.x > b->upper_right.x || \
+              b->lower_left.x > a->upper_right.x || \
+              a->lower_left.y > b->upper_right.y || \
+              b->lower_left.y > a->upper_right.y)
+    ;
 }
 
 bool AABB::testRay(const Ray2 &ray) const {

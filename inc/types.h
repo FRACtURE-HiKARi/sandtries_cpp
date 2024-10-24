@@ -64,6 +64,10 @@ class Calculations {
     static size_t argmin(const Container& c) {
         return std::distance(c.begin(), std::min_element(c.begin(), c.end()));
     }
+    template <typename Container, typename Comparator>
+    static size_t argmax(const Container& c, const Comparator& cmp) {
+        return std::distance(c.begin(), std::max_element(c.begin(), c.end(), cmp));
+    }
 };
 inline bool float_equlas(const float a, const float b) {
     return std::abs(a - b) < FLOAT_ERROR;
