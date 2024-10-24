@@ -40,13 +40,13 @@ public:
 
 };
 
-typedef std::pair<float, Vec2> EPAResult;
-typedef std::list<Vec2> Simplex;
+typedef std::pair<float, Vec3> EPAResult;
+typedef std::list<Vec3> Simplex;
 typedef std::pair<bool, Simplex> GJKResult;
 class CollisionHandler {
 public:
-    static Vec2 getMinkowskiDiff(const Collider *c1, const Collider *c2, const Vec2 &dir);
-    static Vec2 normTo(const Vec2 &A, const Vec2 &B, const Vec2 &O);
+    static Vec3 getMinkowskiDiff(const Collider *c1, const Collider *c2, const Vec3 &dir);
+    static Vec3 normTo(const Vec3 &A, const Vec3 &B, const Vec3 &O);
     static GJKResult GJK(ColliderPair pair);
     static EPAResult EPA(ColliderPair pair, Simplex& s);
 };

@@ -25,7 +25,7 @@ typedef struct Vec3 {
     float abs() const;
     Vec3& operator= (const Vec3 &other);
     bool operator== (const Vec3 &other) const;
-    Vec2 squeeze() { return {x, y};}
+    Vec2 squeeze() const { return {x, y};}
 } Vec3;
 
 // TODO: overload operator[]
@@ -54,7 +54,7 @@ typedef struct Ray2 {
 } Ray2;
 
 typedef struct Pose {
-    Vec2 position;
+    Vec3 position;
     Mat2 rotation;
 } Pose;
 
@@ -104,6 +104,8 @@ class Calculations {
     static size_t argmax(const Container& c, const Comparator& cmp) {
         return std::distance(c.begin(), std::max_element(c.begin(), c.end(), cmp));
     }
+
+    static Vec3 unit(const Vec3 &v);
 };
 inline bool float_equlas(const float a, const float b) {
     return std::abs(a - b) < FLOAT_ERROR;

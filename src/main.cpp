@@ -12,11 +12,11 @@
 int main(){
     PhysicsEngine e;
     int radius = 40;
-    TestObj o((float)radius);
-    //TestStatic o(radius, radius);
+    //TestObj o((float)radius);
+    TestStatic o(radius, radius);
     TestStatic s(150, 100);
-    e.addRigid(o);
-    //e.addStatic(o);
+    //e.addRigid(o);
+    e.addStatic(o);
     e.addStatic(s);
     o.setRotation(Calculations::angle2RotMat(m_pi/6));
     o.setPos({250, 320});
@@ -39,8 +39,8 @@ int main(){
         // capture mouse
         ExMessage msg{};
         if (peekmessage(&msg, EM_MOUSE)) {
-            Vec2 p = o.getPosition();
-            Vec2 m = {(float)msg.x, (float)msg.y};
+            Vec3 p = o.getPosition();
+            Vec3 m = {(float)msg.x, (float)msg.y, 0};
             switch (msg.message) {
                 case WM_LBUTTONDOWN:
                     if ((p - m).abs() <= (float)radius) {

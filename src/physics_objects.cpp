@@ -7,14 +7,24 @@ PhysicsObject::PhysicsObject() {
     rotation = Calculations::angle2RotMat(0);
 }
 
-Vec2 Collider::getCentroidOffset() const {
+Vec3 PhysicsObject::globalToLocalVec(const Vec3 &p) {
+    return pose_mat_inv * p;
+}
+
+Vec3 PhysicsObject::localToGlobalVec(const Vec3 &p) {
+    return pose_mat * p;
+}
+
+void PhysicsObject::setPosition(const Vec2 &p) {
+    global_centroid = {p.x, p.y, 1};
+    pose_mat = getPose(rotation, global_centroid);
+}
+Vec3 Collider::getCentroidOffset() const {
     return local_centroid * mass;
 }
 
-float Collider::getMass() const { return mass; }
-
-float Collider::getInertia(const Vec2& host_centroid) const {
-    Vec2 offset = host_centroid - local_centroid;
+float Collider::getInertia(const Vec3& host_centroid) const {
+    Vec3 offset = host_centroid - local_centroid;
     return m_inertia + (offset * offset) * mass;
 }
 
@@ -33,7 +43,6 @@ void Collider::initInertia() {
 
 void Collider::setPosition(const Vec2 &p) {
     PhysicsObject::setPosition(p);
-    *aabb = *baseAABB + p;
 }
 
 AABB *Collider::getAABB() {
@@ -47,7 +56,7 @@ Collider::~Collider() {
 
 void Collider::setPose(const Pose &pose) {
     rotation = pose.rotation;
-    setPosition(pose.position);
+    setPosition(pose.position.squeeze());
 }
 
 void BallCollider::initInertia() {
@@ -61,15 +70,15 @@ BallCollider::BallCollider(float mass, float radius): Collider(mass) {
 }
 
 bool BallCollider::testRay(const Ray2 &ray, float *t, Vec2 *normal) {
-    Vec2 delta = global_centroid - ray.start;
+    Vec2 delta = global_centroid.squeeze() - ray.start;
     Vec2 proj = Calculations::proj(delta, ray.direction);
     if (proj * ray.direction < 0) return false;
     Vec2 nearest = ray.start + proj;
-    float dist_squared = (global_centroid - nearest) * (global_centroid - nearest);
+    float dist_squared = (global_centroid.squeeze() - nearest) * (global_centroid.squeeze() - nearest);
     if (dist_squared <= radius * radius) {
         *t = proj.abs() - std::sqrt(radius * radius - dist_squared);
         Vec2 hit = ray.start + ray.direction * *t;
-        *normal = (hit - global_centroid);
+        *normal = (hit - global_centroid.squeeze());
         *normal = *normal / normal->abs();
         return true;
     }
@@ -84,10 +93,13 @@ void BallCollider::initAABB() {
     };
 }
 
-Vec2 BallCollider::supportVec(const Vec2 &direction) const {
+Vec3 BallCollider::supportVec(const Vec3 &direction) const {
     return global_centroid + direction * radius;
 }
 
+void BallCollider::setPosition(const Vec2 &p) {
+    *aabb = *baseAABB + p;
+}
 void RectangleCollider::initInertia() {
     m_inertia = mass * (h*h + w*w) / 12.0f;
 }
@@ -97,10 +109,10 @@ RectangleCollider::RectangleCollider(float mass, float width, float height) \
     w = width;
     h = height;
     vertices = {{
-                        {-w / 2, -h / 2},
-                        {w / 2, -h / 2},
-                        {w / 2, h / 2},
-                        {-w / 2, h / 2},
+                        {-w / 2, -h / 2, 1},
+                        {w / 2, -h / 2, 1},
+                        {w / 2, h / 2, 1},
+                        {-w / 2, h / 2, 1},
                 }};
     RectangleCollider::initInertia();
     RectangleCollider::initAABB();
@@ -125,11 +137,11 @@ void RectangleCollider::initAABB() {
 void RectangleCollider::setPosition(const Vec2 &p) {
     Collider::setPosition(p);
     for (int i = 0; i < 4; i++)
-        vs[i] = rotation*vertices[i] + global_centroid;
+        vs[i] = localToGlobalVec(vertices[i]);
     float x, X, y, Y;
     x = X = vs[0].x;
     y = Y = vs[0].y;
-    for (Vec2& v: vs) {
+    for (Vec3& v: vs) {
         if (x > v.x) x = v.x;
         if (X < v.x) X = v.x;
         if (y > v.y) y = v.y;
@@ -142,19 +154,11 @@ void RectangleCollider::setPosition(const Vec2 &p) {
     };
 }
 
-Vec2 RectangleCollider::supportVec(const Vec2 &direction) const {
+Vec3 RectangleCollider::supportVec(const Vec3 &direction) const {
     std::array<float, 4> dots{};
     for (int i = 0; i < 4; i++)
         dots[i] = (vs[i] - global_centroid) * direction;
     return vs[Calculations::argmax(dots)];
-}
-
-Vec2 PhysicsBody::globalToLocalVec(const Vec2 &p) {
-    return rotation.transpose() * (p - global_centroid);
-}
-
-Vec2 PhysicsBody::localToGlobalVec(const Vec2 &p) {
-    return rotation * (p + global_centroid);
 }
 
 void PhysicsBody::addCollider(Collider *collider) {
@@ -202,28 +206,23 @@ RigidBody::RigidBody(): PhysicsBody(){
     torque = angular_acceleration = angular_velocity = 0;
 }
 
-Vec2 RigidBody::integratePosition(float dt) {
+void RigidBody::integratePosition(float dt) {
     acceleration = force * mass_inverse;
     velocity = velocity + acceleration * dt;
-    global_centroid = global_centroid + velocity * dt;
-    return global_centroid;
+    global_centroid = global_centroid + velocity.unsqueeze(0) * dt;
 }
 
-Mat2 RigidBody::integrateRotation(float dt) {
+void RigidBody::integrateRotation(float dt) {
     angular_acceleration = torque * m_inertia_inverse;
     angular_velocity += angular_acceleration * dt;
     Mat2 rot_mat = Calculations::angle2RotMat(angular_velocity * dt);
     rotation = rot_mat * rotation;
-    return rotation;
 }
 
-Pose RigidBody::integration(float dt){
-    Pose result = {
-        integratePosition(dt),
-        integrateRotation(dt)
-    };
+void RigidBody::integration(float dt){
+    integratePosition(dt);
+    integrateRotation(dt);
     updateColliderPos();
-    return result;
 }
 
 void RigidBody::addForce(const Vec2 &force) {

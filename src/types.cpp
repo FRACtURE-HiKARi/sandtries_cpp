@@ -90,6 +90,10 @@ Vec2 Calculations::unit(const Vec2 &v) {
     return v / v.abs();
 }
 
+Vec3 Calculations::unit(const Vec3 &v) {
+    return v / v.abs();
+}
+
 Vec2 Calculations::normal(const Vec2 &source, const Vec2 &target) {
     return unit(source - proj(source, target));
 }

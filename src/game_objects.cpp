@@ -23,7 +23,7 @@ void TestObj::show() {
     );
 }
 
-Vec2 TestObj::pos() {
+Vec3 TestObj::pos() {
     return RigidBody::global_centroid;
 }
 

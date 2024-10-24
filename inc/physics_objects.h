@@ -12,22 +12,25 @@ protected:
     float m_inertia;
     float mass_inverse;
     float m_inertia_inverse;
-    Vec2 local_centroid{0};
-    Vec2 global_centroid{0};
+    Vec3 local_centroid{0};
+    Vec3 global_centroid{0};
     Mat2 rotation{0};
+    Mat3 pose_mat{0};
+    Mat3 pose_mat_inv{0};
 public:
     PhysicsObject();
-    Vec2 getPosition() const {return global_centroid;}
+    Vec3 getPosition() const {return global_centroid;}
     float getMass() const { return mass; }
-    virtual void setPosition(const Vec2 &p) {global_centroid = p;}
+    virtual void setPosition(const Vec2 &p);
     void setRotation(const Mat2 &r) {rotation = r;}
+    Vec3 globalToLocalVec(const Vec3 &p);
+    Vec3 localToGlobalVec(const Vec3 &p);
 };
 
 // describes the geometric shape of colliding objects.
 class Collider: public PhysicsObject {
     // TODO: solve relative offset to the host body.
 protected:
-    Vec2 offset;
     AABB *aabb = nullptr;
     AABB *baseAABB = nullptr;
     virtual void initInertia() = 0;
@@ -35,14 +38,13 @@ protected:
     //PhysicsBody* body;
 public:
     explicit Collider(float mass);
-    Vec2 getCentroidOffset() const;
-    float getMass() const;
+    Vec3 getCentroidOffset() const;
     AABB* getAABB();
     void setPosition(const Vec2 &p) override;
     void setPose(const Pose& pose);
-    float getInertia(const Vec2 &host_centroid) const;
+    float getInertia(const Vec3 &host_centroid) const;
     virtual bool testRay(const Ray2 &ray, float *t, Vec2 *normal) = 0;
-    virtual Vec2 supportVec(const Vec2& direction) const = 0;
+    virtual Vec3 supportVec(const Vec3& direction) const = 0;
     virtual ~Collider();
 };
 
@@ -56,7 +58,8 @@ protected:
 public:
     explicit BallCollider(float mass, float radius);
     bool testRay(const Ray2 &ray, float *t, Vec2 *normal) override;
-    Vec2 supportVec(const Vec2& direction) const override;
+    void BallCollider::setPosition(const Vec2 &p) override;
+    Vec3 supportVec(const Vec3& direction) const override;
 };
 
 class RectangleCollider: public Collider {
@@ -70,9 +73,9 @@ public:
     explicit RectangleCollider(float mass, float width, float height);
     bool testRay(const Ray2 &ray, float *t, Vec2 *normal) override;
     void setPosition(const Vec2& p) override;
-    Vec2 supportVec(const Vec2& direction) const override;
-    std::array<Vec2, 4> vertices{};
-    std::array<Vec2, 4> vs{};
+    Vec3 supportVec(const Vec3& direction) const override;
+    std::array<Vec3, 4> vertices{};
+    std::array<Vec3, 4> vs{};
 };
 
 // TODO: fill this collider
@@ -87,8 +90,6 @@ protected:
 public:
     //PhysicsBody();
     ~PhysicsBody();
-    Vec2 globalToLocalVec(const Vec2 &p);
-    Vec2 localToGlobalVec(const Vec2 &p);
     // TODO: solve place offset when adding
     void addCollider(Collider *collider);
     virtual void addForce(const Vec2 &f) = 0;
@@ -110,13 +111,13 @@ class RigidBody: public PhysicsBody {
     float angular_velocity;
     float angular_acceleration;
 
-    Vec2 integratePosition(float dt);
-    Mat2 integrateRotation(float dt);
+    void integratePosition(float dt);
+    void integrateRotation(float dt);
 
 public:
     // TODO: a useful constructor
     RigidBody();
-    Pose integration(float dt);
+    void integration(float dt);
     void addForce(const Vec2 &force) override;
     void addTorque(float torque);
     void addTorque(Vec2 force, Vec2 offset);

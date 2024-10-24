@@ -90,7 +90,7 @@ RayCastResult BasicBroadPhase::rayCast(const Ray2 &ray) {
     };
 }
 
-Vec2 CollisionHandler::getMinkowskiDiff(const Collider *c1, const Collider *c2, const Vec2 &dir) {
+Vec3 CollisionHandler::getMinkowskiDiff(const Collider *c1, const Collider *c2, const Vec3 &dir) {
      return c1->supportVec(dir) - c2->supportVec(dir*-1);
 }
 
@@ -98,28 +98,27 @@ Vec2 CollisionHandler::getMinkowskiDiff(const Collider *c1, const Collider *c2, 
 GJKResult CollisionHandler::GJK(ColliderPair pair) {
     const Collider* c1 = pair.first;
     const Collider* c2 = pair.second;
-    typedef std::pair<Vec2, Vec2> Edge;
     typedef struct Triangle {
         Simplex vertices;
-        bool handle(Vec2 *d) {
+        bool handle(Vec3 *d) {
             if (vertices.size() == 2)
                 return lineCase(d);
             return triangleCase(d);
         }
-        bool lineCase(Vec2 *d) {
+        bool lineCase(Vec3 *d) {
             auto it = vertices.begin();
-            Vec2 a = *(it++);
-            Vec2 b = *it;
+            Vec3 a = *(it++);
+            Vec3 b = *it;
             *d = normTo(a, b, {0});
             return false;
         }
-        bool triangleCase(Vec2 *d) {
+        bool triangleCase(Vec3 *d) {
             auto it = vertices.begin();
-            Vec2 a = *(it++);
-            Vec2 b = *(it++);
-            Vec2 c = *it;
-            Vec2 n_ab = normTo(a, b, c);
-            Vec2 n_ac = normTo(a, c, b);
+            Vec3 a = *(it++);
+            Vec3 b = *(it++);
+            Vec3 c = *it;
+            Vec3 n_ab = normTo(a, b, c);
+            Vec3 n_ac = normTo(a, c, b);
             if (n_ab * a > 0) {
                 vertices.remove(c);
                 *d = n_ab * -1;
@@ -134,8 +133,8 @@ GJKResult CollisionHandler::GJK(ColliderPair pair) {
         }
     } Triangle;
     Triangle triangle;
-    Vec2 dir = Calculations::unit(c1->getPosition() - c2->getPosition());
-    Vec2 V = getMinkowskiDiff(c1, c2, dir);
+    Vec3 dir = Calculations::unit(c1->getPosition() - c2->getPosition());
+    Vec3 V = getMinkowskiDiff(c1, c2, dir);
     triangle.vertices.push_front(V);
     dir = Calculations::unit(V * -1);
     while (true) {
@@ -152,26 +151,27 @@ GJKResult CollisionHandler::GJK(ColliderPair pair) {
     }
 }
 
-Vec2 CollisionHandler::normTo(const Vec2 &A, const Vec2 &B, const Vec2 &O) {
-    if (A == B) return {0};
-    return Calculations::normal(A-O, A - B) * -1;
+Vec3 CollisionHandler::normTo(const Vec3 &A, const Vec3 &B, const Vec3 &O) {
+    Vec3 AB = B - A;
+    Vec3 AO = O - A;
+    return Calculations::unit(Calculations::cross(Calculations::cross(AB, AO), AB));
 }
 
-float distToOrigin(const Vec2 &A, const Vec2 &B) {
+float distToOrigin(const Vec3 &A, const Vec3 &B) {
     float S2 = std::fabs(A.x*B.y - A.y*B.x);
     return S2 / (A-B).abs();
 }
 
 EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
-    typedef std::pair<Vec2, Vec2> Edge;
+    typedef std::pair<Vec3, Vec3> Edge;
     typedef struct VE {
-        Vec2 vertex;
+        Vec3 vertex;
         float angle;
         float distToOrigin;
     } VE;
     typedef struct Polygon {
         std::list<VE> edges;
-        VE makeEdge(Vec2 &V, Vec2 &next) {
+        VE makeEdge(Vec3 &V, Vec3 &next) {
             return {
                V,
                std::atan2f(V.y, V.x) + m_pi,
@@ -179,7 +179,7 @@ EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
             };
         }
         void init(Simplex &s) {
-            s.sort([](const Vec2 &a, const Vec2 &b) -> bool {
+            s.sort([](const Vec3 &a, const Vec3 &b) -> bool {
                 return std::atan2f(a.y, a.x) < std::atan2f(b.y, b.x);
             });
             edges.clear();
@@ -201,7 +201,7 @@ EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
         }
         // TODO: maintain covexity on some cases (push when covering previous vertex)
         // may be check new vertex is outside of the neighbor edges.
-        void push(Vec2 &V) {
+        void push(Vec3 &V) {
             float angle = std::atan2f(V.y, V.x) + m_pi;
             auto first = edges.begin();
             auto second = std::prev(edges.end());
@@ -230,7 +230,7 @@ EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
     } Polygon;
     Collider *c1 = pair.first;
     Collider *c2 = pair.second;
-    Vec2 V, dir;
+    Vec3 V, dir;
     Polygon polygon;
     Edge nearest;
     polygon.init(s);
@@ -257,7 +257,7 @@ EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
             */
         polygon.push(V);
     }
-    Vec2 normal = normTo(nearest.first, nearest.second, {0});
+    Vec3 normal = normTo(nearest.first, nearest.second, {0});
     return std::make_pair(last, normal);
 }
 

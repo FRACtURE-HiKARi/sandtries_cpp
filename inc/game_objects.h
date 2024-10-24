@@ -10,7 +10,7 @@ class TestObj: public Visible, public RigidBody {
 public:
     explicit TestObj(float r);
     void show() override;
-    Vec2 pos();
+    Vec3 pos();
     void setPos(const Vec2& pose);
 };
 
