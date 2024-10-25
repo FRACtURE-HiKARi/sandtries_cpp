@@ -201,6 +201,14 @@ Mat3 Mat3::transpose() const {
     };
 }
 
+Mat3 Mat3::identity() {
+    return {
+            {1, 0, 0},
+            {0, 1, 0},
+            {0, 0, 1}
+    };
+}
+
 Mat3 &Mat3::operator=(const Mat3 &other) = default;
 
 Vec3 operator+ (const Vec3 &a, const Vec3 &b) {
@@ -261,6 +269,27 @@ Mat3 getPose(const Mat2 &rot, const Vec3 &p) {
     return {
             rot.row1.unsqueeze(p.x),
             rot.row2.unsqueeze(p.y),
+            {0, 0, 1}
+    };
+}
+
+Mat3 getPose(const Vec3 &p) {
+    Mat2 rot = Calculations::angle2RotMat(p.z);
+    return {
+            {rot.row1.x, rot.row1.y, p.x},
+            {rot.row2.x, rot.row2.y, p.y},
+            {0, 0, 1}
+    };
+}
+
+Mat3 getInversePose(const Mat3 &p) {
+    return Mat3 {
+            {p.row1.x, p.row2.x, 0},
+            {p.row1.y, p.row2.y, 0},
+            {0, 0, 1}
+    } * Mat3 {
+            {1, 0, -p.row1.z},
+            {0, 1, -p.row2.z},
             {0, 0, 1}
     };
 }

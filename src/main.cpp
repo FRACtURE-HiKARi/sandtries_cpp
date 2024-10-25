@@ -1,7 +1,6 @@
 #include <iostream>
 #include "sandtries.h"
 #include <windows.h>
-#include <sstream>
 #include <conio.h>
 
 // TODO: collision handling
@@ -11,17 +10,17 @@
 
 int main(){
     Renderer renderer(320, 640);
-    PhysicsEngine e;
+    PhysicsEngine e(100);
     e.setRenderer(renderer);
     int radius = 40;
-    //TestObj o((float)radius);
-    TestStatic o(radius, radius);
+    TestObj o((float)radius);
+    //TestStatic o(radius, radius);
     TestStatic s(150, 100);
-    //e.addRigid(o);
-    e.addStatic(o);
+    e.addRigid(o);
+    //e.addStatic(o);
     e.addStatic(s);
     o.setRotation(Calculations::angle2RotMat(m_pi/6));
-    o.setPos({250, 320});
+    o.setPos({220, 320});
     s.setPos({130, 480});
     Scene scene;
     scene.addVisible(s);
@@ -30,16 +29,21 @@ int main(){
     BeginBatchDraw();
     bool dragging = false;
     int offsetX, offsetY;
+    Vec3 pos;
     while (true) {
         //o.addTorque(500);
         long t_start = clock();
         cleardevice();
+        if (dragging)
+            pos = o.global_centroid();
         e.updateObjects(dt);
+        if (dragging)
+            o.setPosition(pos.squeeze());
         long t_end = clock();
         // capture mouse
         ExMessage msg{};
         if (peekmessage(&msg, EM_MOUSE)) {
-            Vec3 p = o.getPosition();
+            Vec3 p = o.global_centroid();
             Vec3 m = {(float)msg.x, (float)msg.y, 0};
             switch (msg.message) {
                 case WM_LBUTTONDOWN:
@@ -49,22 +53,22 @@ int main(){
                         offsetY = msg.y - (int)p.y;
                     }
                     break;
-                case WM_MOUSEMOVE:
+                case WM_LBUTTONUP:
+                    dragging = false;
+                    break;
+                default:
                     if (dragging){
                         int x = msg.x - offsetX;
                         int y = msg.y - offsetY;
                         o.setPos({(float)x, (float)y});
                     }
                     break;
-                case WM_LBUTTONUP:
-                    dragging = false;
-                    break;
             }
         }
         renderer.addDebugInfo("Delay", t_end - t_start);
         renderer.render(scene);
         //std::cout << o.RigidBody::getPosition();
-        //Sleep((unsigned)(dt * 1000));
+        Sleep((unsigned)(dt * 1000));
     }
     return 0;
 }

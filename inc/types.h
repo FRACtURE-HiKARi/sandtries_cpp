@@ -45,7 +45,7 @@ typedef struct Mat3 {
     void zero();
     Mat3& operator= (const Mat3 &other);
     Mat3 transpose() const;
-    //Mat3 inv() const;
+    static Mat3 identity();
 } Mat3;
 
 typedef struct Ray2 {
@@ -77,6 +77,8 @@ Vec3 operator* (const Mat3 &m, const Vec3 &b);
 Mat3 operator* (const Mat3 &m, const Mat3 &n);
 
 Mat3 getPose(const Mat2 &rot, const Vec3 &p);
+Mat3 getPose(const Vec3 &p);
+Mat3 getInversePose(const Mat3 &p);
 
 class Calculations {
     public:

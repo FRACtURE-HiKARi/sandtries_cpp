@@ -133,7 +133,7 @@ GJKResult CollisionHandler::GJK(ColliderPair pair) {
         }
     } Triangle;
     Triangle triangle;
-    Vec3 dir = Calculations::unit(c1->getPosition() - c2->getPosition());
+    Vec3 dir = Calculations::unit(c1->global_centroid() - c2->global_centroid());
     Vec3 V = getMinkowskiDiff(c1, c2, dir);
     triangle.vertices.push_front(V);
     dir = Calculations::unit(V * -1);
@@ -171,7 +171,7 @@ EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
     } VE;
     typedef struct Polygon {
         std::list<VE> edges;
-        VE makeEdge(Vec3 &V, Vec3 &next) {
+        static VE makeEdge(Vec3 &V, Vec3 &next) {
             return {
                V,
                std::atan2f(V.y, V.x) + m_pi,

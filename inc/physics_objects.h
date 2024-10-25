@@ -13,16 +13,15 @@ protected:
     float mass_inverse;
     float m_inertia_inverse;
     Vec3 local_centroid{0};
-    Vec3 global_centroid{0};
-    Mat2 rotation{0};
-    Mat3 pose_mat{0};
-    Mat3 pose_mat_inv{0};
+    Mat3 pose_mat;
+    Mat3 pose_mat_inv;
 public:
     PhysicsObject();
-    Vec3 getPosition() const {return global_centroid;}
+    Vec3 global_centroid() const;
+    Mat2 rotation() const;
     float getMass() const { return mass; }
     virtual void setPosition(const Vec2 &p);
-    void setRotation(const Mat2 &r) {rotation = r;}
+    void setRotation(const Mat2 &r);
     Vec3 globalToLocalVec(const Vec3 &p);
     Vec3 localToGlobalVec(const Vec3 &p);
 };
@@ -42,7 +41,8 @@ public:
     Vec3 getCentroidOffset() const;
     AABB* getAABB();
     void setPosition(const Vec2 &p) override;
-    void setPose(const Pose& pose);
+    virtual void setPose(const Mat3& pose);
+    virtual void updateAABB() = 0;
     float getInertia(const Vec3 &host_centroid) const;
     virtual bool testRay(const Ray2 &ray, float *t, Vec2 *normal) = 0;
     virtual Vec3 supportVec(const Vec3& direction) const = 0;
@@ -59,8 +59,10 @@ protected:
 public:
     explicit BallCollider(float mass, float radius);
     bool testRay(const Ray2 &ray, float *t, Vec2 *normal) override;
-    void BallCollider::setPosition(const Vec2 &p) override;
+    void setPosition(const Vec2 &p) override;
     Vec3 supportVec(const Vec3& direction) const override;
+    void setPose(const Mat3 &pose) override;
+    void updateAABB() override;
 };
 
 class RectangleCollider: public Collider {
@@ -75,6 +77,8 @@ public:
     bool testRay(const Ray2 &ray, float *t, Vec2 *normal) override;
     void setPosition(const Vec2& p) override;
     Vec3 supportVec(const Vec3& direction) const override;
+    void setPose(const Mat3 &pose) override;
+    void updateAABB() override;
     std::array<Vec3, 4> vertices{};
     std::array<Vec3, 4> vs{};
 };
@@ -105,15 +109,9 @@ public:
 };
 
 class RigidBody: public PhysicsBody {
-    Vec2 velocity{};
-    Vec2 acceleration{};
-    Vec2 force{};
-    float torque;
-    float angular_velocity;
-    float angular_acceleration;
-
-    void integratePosition(float dt);
-    void integrateRotation(float dt);
+    Vec3 force_n_torque{};
+    Vec3 acceleration{};
+    Vec3 velocity{};
 
 public:
     // TODO: a useful constructor
