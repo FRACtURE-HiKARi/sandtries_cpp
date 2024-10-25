@@ -40,15 +40,17 @@ public:
 
 };
 
+class Renderer;
 typedef std::pair<float, Vec3> EPAResult;
 typedef std::list<Vec3> Simplex;
 typedef std::pair<bool, Simplex> GJKResult;
 class CollisionHandler {
 public:
-    static Vec3 getMinkowskiDiff(const Collider *c1, const Collider *c2, const Vec3 &dir);
+    Renderer *renderer = nullptr;
+    Vec3 getMinkowskiDiff(const Collider *c1, const Collider *c2, const Vec3 &dir);
     static Vec3 normTo(const Vec3 &A, const Vec3 &B, const Vec3 &O);
-    static GJKResult GJK(ColliderPair pair);
-    static EPAResult EPA(ColliderPair pair, Simplex& s);
+    GJKResult GJK(ColliderPair pair);
+    EPAResult EPA(ColliderPair pair, Simplex& s);
 };
 
 // TODO: collision and resting
@@ -58,10 +60,13 @@ class PhysicsEngine {
     std::vector <RigidBody*> rigid_bodies;
     float gravity;
     void applyGravity();
+    Renderer *renderer = nullptr;
+    CollisionHandler handler;
 public:
     PhysicsEngine();
     explicit PhysicsEngine(float gravity);
     void updateObjects(float dt);
     void addRigid(RigidBody& rigidBody);
     void addStatic(StaticBody& staticBody);
+    void setRenderer(Renderer &r);
 };

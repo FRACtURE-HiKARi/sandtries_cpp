@@ -7,6 +7,7 @@
 #include "physics_engine.h"
 #include "utils.h"
 #include <graphics.h>
+#include <sstream>
 
 typedef std::list<Node*> ObjectList;
 typedef struct Color {
@@ -30,11 +31,17 @@ class Renderer {
     int width, height;
     DWORD* imageBuffer;
     HWND hwnd;
+    int db_left = 50, db_top = 10, db_top_offset = 0;
+    std::stringstream debug_strings;
 public:
     Renderer(int window_width, int window_height);
     void render(Scene &scene);
     static void drawText(const std::string& str, RECT* rect, unsigned format);
     void drawText(const std::string& str, long left, long top);
+    void drawDebugInfo();
+    void addDebugInfo(const std::string& str);
+    template <typename T>
+    void addDebugInfo(const std::string &name, const T& value) {
+        debug_strings << name << ": " << value << '\n';
+    }
 };
-
-static Renderer renderer(320, 640);

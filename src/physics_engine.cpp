@@ -234,30 +234,33 @@ EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
     Polygon polygon;
     Edge nearest;
     polygon.init(s);
-    float last = INFINITY;
+    float last;
     while (true) {
         nearest = polygon.getNearest();
         dir = normTo(nearest.first, nearest.second, {0}) * -1;
         float now = distToOrigin(nearest.first, nearest.second);
+        if (float_equlas(now, 0))
+            return std::make_pair(0, Vec3{0});
         V = getMinkowskiDiff(c1, c2, dir);
+        last = V * dir;
         //terminates;
-        if (now >= last)
+        if (last < now)
             break;
-        last = now;
         if (V * dir < 0)
             break;
         if (V == nearest.first || V == nearest.second)
             break;
-        /*
-        Vec2 v0 = nearest.first - nearest.second;
-        Vec2 v1 = V - nearest.first;
-        Vec2 v2 = V - nearest.second;
+
+        Vec3 v0 = nearest.first - nearest.second;
+        Vec3 v1 = V - nearest.first;
+        Vec3 v2 = V - nearest.second;
         if (v1.abs() + v2.abs() - v0.abs()< 0.001)
             break;
-            */
+
         polygon.push(V);
     }
     Vec3 normal = normTo(nearest.first, nearest.second, {0});
+    renderer->addDebugInfo("Num Edges", polygon.edges.size());
     return std::make_pair(last, normal);
 }
 
@@ -283,13 +286,12 @@ void PhysicsEngine::updateObjects(float dt) {
     ColliderPairList candidates = broadPhase.getAllPairs();
     for (ColliderPair pair: candidates) {
         circle(20, 20, 10);
-        GJKResult gjkResult = CollisionHandler::GJK(pair);
+        GJKResult gjkResult = handler.GJK(pair);
         if (gjkResult.first) {
             fillcircle(20, 20, 10);
-            EPAResult epaResult = CollisionHandler::EPA(pair, gjkResult.second);
+            EPAResult epaResult = handler.EPA(pair, gjkResult.second);
             std::stringstream ss;
-            ss << "Depth: " << epaResult.first;
-            renderer.drawText(ss.str(), 50, 30);
+            renderer->addDebugInfo("Depth", epaResult.first);
         }
     }
 
@@ -309,4 +311,8 @@ void PhysicsEngine::addStatic(StaticBody &staticBody) {
     staticBody.pushAllAABBs(list);
     for (AABB *aabb: list)
         broadPhase.addAABB(aabb);
+}
+
+void PhysicsEngine::setRenderer(Renderer &r) {
+    renderer = handler.renderer = &r;
 }

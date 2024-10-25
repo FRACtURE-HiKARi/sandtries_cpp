@@ -10,7 +10,9 @@
 // TODO:? multi-thread when updating objects / refreshing screen
 
 int main(){
+    Renderer renderer(320, 640);
     PhysicsEngine e;
+    e.setRenderer(renderer);
     int radius = 40;
     //TestObj o((float)radius);
     TestStatic o(radius, radius);
@@ -34,8 +36,6 @@ int main(){
         cleardevice();
         e.updateObjects(dt);
         long t_end = clock();
-        std::stringstream ss;
-        ss << "Delay: " << t_end - t_start << "ms";
         // capture mouse
         ExMessage msg{};
         if (peekmessage(&msg, EM_MOUSE)) {
@@ -61,7 +61,7 @@ int main(){
                     break;
             }
         }
-        renderer.drawText(ss.str(), 50, 10);
+        renderer.addDebugInfo("Delay", t_end - t_start);
         renderer.render(scene);
         //std::cout << o.RigidBody::getPosition();
         //Sleep((unsigned)(dt * 1000));

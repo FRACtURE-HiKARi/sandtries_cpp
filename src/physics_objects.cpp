@@ -65,6 +65,7 @@ void BallCollider::initInertia() {
 
 BallCollider::BallCollider(float mass, float radius): Collider(mass) {
     this->radius = radius;
+    round_shaped = true;
     BallCollider::initInertia();
     BallCollider::initAABB();
 }
@@ -98,6 +99,7 @@ Vec3 BallCollider::supportVec(const Vec3 &direction) const {
 }
 
 void BallCollider::setPosition(const Vec2 &p) {
+    Collider::setPosition(p);
     *aabb = *baseAABB + p;
 }
 void RectangleCollider::initInertia() {

@@ -37,6 +37,7 @@ protected:
     virtual void initAABB() = 0;
     //PhysicsBody* body;
 public:
+    bool round_shaped = false;
     explicit Collider(float mass);
     Vec3 getCentroidOffset() const;
     AABB* getAABB();
