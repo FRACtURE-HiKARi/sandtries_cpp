@@ -13,8 +13,8 @@ protected:
     float mass_inverse;
     float m_inertia_inverse;
     Vec3 local_centroid{0};
-    Mat3 pose_mat;
-    Mat3 pose_mat_inv;
+    Mat3 pose_mat{};
+    Mat3 pose_mat_inv{};
 public:
     PhysicsObject();
     Vec3 global_centroid() const;
@@ -131,10 +131,7 @@ typedef struct AABB {
     Vec2 upper_right;
     Collider* collider;
     inline AABB& operator= (const AABB&) = default;
-    inline AABB& operator+= (const Vec2& v) {
-        *this = *this + v;
-        return *this;
-    }
+    inline AABB& operator+= (const Vec2& v);
     AABB(const AABB&) = default;
     bool contains(const Vec2& v) const;
     static bool meets(const AABB* a, const AABB* b);

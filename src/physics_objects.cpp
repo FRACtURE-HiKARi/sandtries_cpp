@@ -336,3 +336,9 @@ float AABB::distTo(const Vec2 &p) const {
     else dy = 0;
     return std::sqrtf(dx*dx + dy*dy);
 }
+
+AABB &AABB::operator+=(const Vec2 &v)
+{
+    *this = *this + v;
+    return *this;
+}
