@@ -53,7 +53,6 @@ typedef std::list<Collider*> ColliderList;
 
 class BallCollider: public Collider {
 protected:
-    float radius;
     void initInertia() override;
     void initAABB() override;
 public:
@@ -63,6 +62,8 @@ public:
     Vec3 supportVec(const Vec3& direction) const override;
     void setPose(const Mat3 &pose) override;
     void updateAABB() override;
+
+    float radius;
 };
 
 class RectangleCollider: public Collider {
@@ -85,7 +86,35 @@ public:
 
 // TODO: fill this collider
 class PolygonCollider: public Collider {
-
+protected:
+    template <typename... Vec>
+    void storeVertices(const Vec2 &v, Vec... vertices) {
+        this->vertices.push_back(v.unsqueeze(1));
+        storeVertices(vertices...);
+    }
+    void storeVertices() {}
+    size_t size;
+    void initInertia() override;
+    void initAABB() override;
+public:
+    template <typename... Vec>
+    explicit PolygonCollider(const Vec2 &vertex, Vec... vertices): Collider(1) {
+        size = sizeof...(vertices) + 1;
+        this->vertices.reserve(size);
+        vs.assign(size, {});
+        storeVertices(vertex, vertices...);
+        std::sort(this->vertices.begin(), this->vertices.end(), [](const Vec3 &a, const Vec3 &b)->bool{
+            return std::atan2f(a.y, a.x) < std::atan2f(b.y, b.x);
+        });
+    }
+    size_t getSize() const {return size;}
+    bool testRay(const Ray2 &ray, float *t, Vec2 *normal) override;
+    void setPosition(const Vec2& p) override;
+    Vec3 supportVec(const Vec3& direction) const override;
+    void setPose(const Mat3 &pose) override;
+    void updateAABB() override;
+    std::vector<Vec3> vertices;
+    std::vector<Vec3> vs;
 };
 
 class PhysicsBody: public PhysicsObject {

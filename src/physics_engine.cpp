@@ -230,6 +230,8 @@ EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
     } Polygon;
     Collider *c1 = pair.first;
     Collider *c2 = pair.second;
+    if (c1->round_shaped && c2->round_shaped)
+        return circles((BallCollider*)pair.first, (BallCollider*)pair.second);
     Vec3 V, dir;
     Polygon polygon;
     Edge nearest;
@@ -264,6 +266,13 @@ EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
     return std::make_pair(last, normal);
 }
 
+EPAResult CollisionHandler::circles(BallCollider* b1, BallCollider* b2) {
+    Vec3 delta = b1->global_centroid() - b2->global_centroid();
+    Vec3 dir = Calculations::unit(delta);
+    float dist = delta.abs() - b1->radius - b2->radius;
+    return std::make_pair(dist, dir);
+}
+
 void PhysicsEngine::applyGravity() {
     Vec2 gravityForce = {0, gravity};
     for (RigidBody* object: rigid_bodies) {
@@ -292,6 +301,12 @@ void PhysicsEngine::updateObjects(float dt) {
             EPAResult epaResult = handler.EPA(pair, gjkResult.second);
             std::stringstream ss;
             renderer->addDebugInfo("Depth", epaResult.first);
+            Vec3 start = pair.first->supportVec(epaResult.second * -1);
+            Vec3 end = start + epaResult.second * epaResult.first;
+            line((int)start.x, (int)start.y, (int)end.x, (int)end.y);
+            start = pair.second->supportVec(epaResult.second);
+            end = start - epaResult.second * epaResult.first;
+            line((int)start.x, (int)start.y, (int)end.x, (int)end.y);
         }
     }
 

@@ -10,16 +10,25 @@
 
 int main(){
     Renderer renderer(320, 640);
-    PhysicsEngine e(100);
+    PhysicsEngine e(0);
     e.setRenderer(renderer);
     int radius = 40;
-    TestObj o((float)radius);
+    //TestObj o((float)radius);
     //TestStatic o(radius, radius);
+    TestPolygon o;
+    o.addCollider(new PolygonCollider(
+            Vec2{150, -50}/4,
+            Vec2{144, 139}/4,
+            Vec2{-73, 145}/4,
+            Vec2{-143, 7}/4,
+            Vec2{-93, -295}/4,
+            Vec2{91, -190}/4
+    ));
     TestStatic s(150, 100);
-    e.addRigid(o);
-    //e.addStatic(o);
+    //e.addRigid(o);
+    e.addStatic(o);
     e.addStatic(s);
-    o.setRotation(Calculations::angle2RotMat(m_pi/6));
+    o.setRotation(Calculations::angle2RotMat(-m_pi /5));
     o.setPos({220, 320});
     s.setPos({130, 480});
     Scene scene;
@@ -68,9 +77,8 @@ int main(){
         renderer.addDebugInfo("Delay", t_end - t_start);
         renderer.render(scene);
         //std::cout << o.RigidBody::getPosition();
-        Sleep((unsigned)(dt * 1000));
+        //Sleep((unsigned)(dt * 1000));
     }
-    return 0;
 }
 
 /*

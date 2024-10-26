@@ -22,3 +22,9 @@ public:
     void setPos(const Vec2& pose);
 
 };
+
+class TestPolygon: public Visible, public StaticBody {
+public:
+    void show() override;
+    void setPos(const Vec2 &p) {StaticBody::setPosition(p);}
+};

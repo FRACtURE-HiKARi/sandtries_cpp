@@ -205,6 +205,55 @@ void RectangleCollider::updateAABB() {
     };
 }
 
+bool PolygonCollider::testRay(const Ray2 &ray, float *t, Vec2 *normal) {
+    return false;
+}
+
+void PolygonCollider::setPosition(const Vec2 &p) {
+    Collider::setPosition(p);
+    updateAABB();
+}
+
+Vec3 PolygonCollider::supportVec(const Vec3 &direction) const {
+    std::vector<float> dots(size);
+    Vec3 gc = global_centroid();
+    for (int i = 0; i < size; i++) {
+        dots[i] = (vs[i] - gc) * direction;
+    }
+    return vs[Calculations::argmax(dots)];
+}
+
+void PolygonCollider::setPose(const Mat3 &pose) {
+    Collider::setPose(pose);
+    updateAABB();
+}
+
+void PolygonCollider::updateAABB() {
+    for (int i = 0; i < size; i++)
+        vs[i] = localToGlobalVec(vertices[i]);
+    float x, X, y, Y;
+    Vec3& front = vs[0];
+    x = X = front.x;
+    y = Y = front.y;
+    for (int i = 1; i < size; i++) {
+        Vec3 &v = vs[i];
+        if (x > v.x) x = v.x;
+        if (X < v.x) X = v.x;
+        if (y > v.y) y = v.y;
+        if (Y < v.y) Y = v.y;
+    }
+    aabb->lower_left = {x, y};
+    aabb->upper_right = {X, Y};
+}
+
+void PolygonCollider::initInertia() {
+    m_inertia = m_inertia_inverse = 0;
+}
+
+void PolygonCollider::initAABB() {
+    aabb = new AABB{};
+}
+
 void PhysicsBody::addCollider(Collider *collider) {
     collider_list.push_back(collider);
     local_centroid = local_centroid * mass + collider->getCentroidOffset();

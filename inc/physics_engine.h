@@ -51,6 +51,7 @@ public:
     static Vec3 normTo(const Vec3 &A, const Vec3 &B, const Vec3 &O);
     GJKResult GJK(ColliderPair pair);
     EPAResult EPA(ColliderPair pair, Simplex& s);
+    static EPAResult circles(BallCollider* b1, BallCollider* b2);
 };
 
 // TODO: collision and resting

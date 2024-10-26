@@ -45,7 +45,7 @@ void TestStatic::setPos(const Vec2 &pose) {
 }
 
 void TestStatic::show() {
-    auto* c = (RectangleCollider*)collider_list.front();
+    auto c = (RectangleCollider*)collider_list.front();
     AABB *aabb = c->getAABB();
     drawAABB(aabb);
     POINT ps[4] = {
@@ -55,4 +55,14 @@ void TestStatic::show() {
             {(long)c->vs[3].x, (long)c->vs[3].y},
     };
     polygon(ps, 4);
+}
+
+void TestPolygon::show() {
+    auto c = (PolygonCollider*)collider_list.front();
+    size_t size = c->getSize();
+    drawAABB(c->getAABB());
+    std::vector<POINT> ps(size);
+    for (int i = 0; i < size; i++)
+        ps[i] = {(long) c->vs[i].x, (long) c->vs[i].y};
+    polygon(ps.data(), (int)size);
 }
