@@ -109,7 +109,7 @@ GJKResult CollisionHandler::GJK(ColliderPair pair) {
             auto it = vertices.begin();
             Vec3 a = *(it++);
             Vec3 b = *it;
-            *d = normTo(a, b, {0});
+            *d = Calculations::normTo(a, b, {0});
             return false;
         }
         bool triangleCase(Vec3 *d) {
@@ -117,8 +117,8 @@ GJKResult CollisionHandler::GJK(ColliderPair pair) {
             Vec3 a = *(it++);
             Vec3 b = *(it++);
             Vec3 c = *it;
-            Vec3 n_ab = normTo(a, b, c);
-            Vec3 n_ac = normTo(a, c, b);
+            Vec3 n_ab = Calculations::normTo(a, b, c);
+            Vec3 n_ac = Calculations::normTo(a, c, b);
             if (n_ab * a > 0) {
                 vertices.remove(c);
                 *d = n_ab * -1;
@@ -149,12 +149,6 @@ GJKResult CollisionHandler::GJK(ColliderPair pair) {
             return std::make_pair(true, s);
         }
     }
-}
-
-Vec3 CollisionHandler::normTo(const Vec3 &A, const Vec3 &B, const Vec3 &O) {
-    Vec3 AB = B - A;
-    Vec3 AO = O - A;
-    return Calculations::unit(Calculations::cross(Calculations::cross(AB, AO), AB));
 }
 
 float distToOrigin(const Vec3 &A, const Vec3 &B) {
@@ -239,7 +233,7 @@ EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
     float last;
     while (true) {
         nearest = polygon.getNearest();
-        dir = normTo(nearest.first, nearest.second, {0}) * -1;
+        dir = Calculations::normTo(nearest.first, nearest.second, {0}) * -1;
         float now = distToOrigin(nearest.first, nearest.second);
         if (float_equlas(now, 0))
             return std::make_pair(0, Vec3{0});
@@ -261,7 +255,7 @@ EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
 
         polygon.push(V);
     }
-    Vec3 normal = normTo(nearest.first, nearest.second, {0});
+    Vec3 normal = Calculations::normTo(nearest.first, nearest.second, {0});
     renderer->addDebugInfo("Num Edges", polygon.edges.size());
     return std::make_pair(last, normal);
 }
@@ -271,6 +265,30 @@ EPAResult CollisionHandler::circles(BallCollider* b1, BallCollider* b2) {
     Vec3 dir = Calculations::unit(delta);
     float dist = delta.abs() - b1->radius - b2->radius;
     return std::make_pair(dist, dir);
+}
+
+void CollisionHandler::assignImpulse(ColliderPair pair, EPAResult epaResult) {
+    Vec3 N = epaResult.second;
+    Vec3 v_rel = pair.first->body->velocityVector() - pair.second->body->velocityVector();
+    float e = (pair.first->restitution < pair.second->restitution) ? \
+                pair.first->restitution : pair.second->restitution;
+    float miu = (pair.first->friction > pair.second->friction) ? \
+                pair.first->friction : pair.second->friction;
+    float v_rn = v_rel * N;
+    if (v_rn >= 0) return;
+    Vec3 dv_f_dir = Calculations::unit(N * v_rn - v_rel);
+    Vec3 dv = (dv_f_dir * miu + N) * (-(1+e) * v_rn);
+    Ray2 ray{pair.first->global_centroid().squeeze(), N.squeeze() * -1};
+    float t;
+    Vec2 n;
+    pair.first->testRay(ray, &t, &n);
+    Vec3 r1 = ray.start.unsqueeze(1) + N*t;
+    ray = {pair.second->global_centroid().squeeze(), N.squeeze()};
+    pair.second->testRay(ray, &t, &n);
+    Vec3 r2 = ray.start.unsqueeze(1) + N*t;
+    Vec3 J = dv / (pair.first->getEffectiveMass(r1) + pair.second->getEffectiveMass(r2));
+    pair.first->body->applyImpulse(J, r1);
+    pair.second->body->applyImpulse(J, r2);
 }
 
 void PhysicsEngine::applyGravity() {
@@ -299,14 +317,8 @@ void PhysicsEngine::updateObjects(float dt) {
         if (gjkResult.first) {
             fillcircle(20, 20, 10);
             EPAResult epaResult = handler.EPA(pair, gjkResult.second);
-            std::stringstream ss;
             renderer->addDebugInfo("Depth", epaResult.first);
-            Vec3 start = pair.first->supportVec(epaResult.second * -1);
-            Vec3 end = start + epaResult.second * epaResult.first;
-            line((int)start.x, (int)start.y, (int)end.x, (int)end.y);
-            start = pair.second->supportVec(epaResult.second);
-            end = start - epaResult.second * epaResult.first;
-            line((int)start.x, (int)start.y, (int)end.x, (int)end.y);
+            handler.assignImpulse(pair, epaResult);
         }
     }
 

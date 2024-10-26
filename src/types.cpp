@@ -119,6 +119,12 @@ Vec3 Calculations::cross(const Vec3 &a, const Vec3 &b) {
     };
 }
 
+Vec3 Calculations::normTo(const Vec3 &A, const Vec3 &B, const Vec3 &O) {
+    Vec3 AB = B - A;
+    Vec3 AO = O - A;
+    return Calculations::unit(Calculations::cross(Calculations::cross(AB, AO), AB));
+}
+
 Mat2 Mat2::transpose() const{
     return {
         {row1.x, row2.x},

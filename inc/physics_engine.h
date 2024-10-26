@@ -48,10 +48,10 @@ class CollisionHandler {
 public:
     Renderer *renderer = nullptr;
     static Vec3 getMinkowskiDiff(const Collider *c1, const Collider *c2, const Vec3 &dir);
-    static Vec3 normTo(const Vec3 &A, const Vec3 &B, const Vec3 &O);
     GJKResult GJK(ColliderPair pair);
     EPAResult EPA(ColliderPair pair, Simplex& s);
     static EPAResult circles(BallCollider* b1, BallCollider* b2);
+    static void assignImpulse(ColliderPair pair, EPAResult epaResult);
 };
 
 // TODO: collision and resting

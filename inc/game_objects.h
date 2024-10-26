@@ -14,6 +14,13 @@ public:
     void setPos(const Vec2& pose);
 };
 
+class TestRec: public Visible, public RigidBody {
+    int w, h;
+public:
+    explicit TestRec(int w, int h);
+    void show() override;
+};
+
 class TestStatic: public Visible, public StaticBody {
     int w, h;
 public:

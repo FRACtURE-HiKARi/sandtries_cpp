@@ -10,11 +10,13 @@
 
 int main(){
     Renderer renderer(320, 640);
-    PhysicsEngine e(0);
+    PhysicsEngine e(500);
     e.setRenderer(renderer);
     int radius = 40;
     //TestObj o((float)radius);
+    TestRec o(40, 40);
     //TestStatic o(radius, radius);
+    /*
     TestPolygon o;
     o.addCollider(new PolygonCollider(
             Vec2{150, -50}/4,
@@ -24,12 +26,14 @@ int main(){
             Vec2{-93, -295}/4,
             Vec2{91, -190}/4
     ));
-    TestStatic s(150, 100);
-    //e.addRigid(o);
-    e.addStatic(o);
+     */
+    TestStatic s(300, 50);
+    e.addRigid(o);
+    //e.addStatic(o);
     e.addStatic(s);
-    o.setRotation(Calculations::angle2RotMat(-m_pi /5));
-    o.setPos({220, 320});
+    //o.setRotation(Calculations::angle2RotMat(-m_pi /5));
+    o.setPosition({80, 320});
+    s.setRotation(Calculations::angle2RotMat(0.2));
     s.setPos({130, 480});
     Scene scene;
     scene.addVisible(s);
@@ -69,7 +73,7 @@ int main(){
                     if (dragging){
                         int x = msg.x - offsetX;
                         int y = msg.y - offsetY;
-                        o.setPos({(float)x, (float)y});
+                        o.setPosition({(float)x, (float)y});
                     }
                     break;
             }
@@ -77,7 +81,7 @@ int main(){
         renderer.addDebugInfo("Delay", t_end - t_start);
         renderer.render(scene);
         //std::cout << o.RigidBody::getPosition();
-        //Sleep((unsigned)(dt * 1000));
+        Sleep((unsigned)(dt * 1000));
     }
 }
 

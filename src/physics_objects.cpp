@@ -53,6 +53,7 @@ float Collider::getInertia(const Vec3& host_centroid) const {
 
 Collider::Collider(float mass) : PhysicsObject() {
     this->mass = mass;
+    mass_inverse = float_equlas(mass, 0) ? 0 : 1.f/mass;
     this->local_centroid = {0};
     aabb = new AABB{0};
     aabb->collider = this;
@@ -82,8 +83,14 @@ void Collider::setPose(const Mat3& pose) {
     pose_mat_inv = getInversePose(pose_mat);
 }
 
+float Collider::getEffectiveMass(Vec3 r) {
+    Vec2 r2 = r.squeeze();
+    return mass + m_inertia_inverse * (r2 * r2);
+}
+
 void BallCollider::initInertia() {
     m_inertia = 0.5f * mass * radius * radius;
+    m_inertia_inverse = 1 / m_inertia;
 }
 
 BallCollider::BallCollider(float mass, float radius): Collider(mass) {
@@ -137,6 +144,7 @@ void BallCollider::updateAABB() {
 
 void RectangleCollider::initInertia() {
     m_inertia = mass * (h*h + w*w) / 12.0f;
+    m_inertia_inverse = 1 / m_inertia;
 }
 
 RectangleCollider::RectangleCollider(float mass, float width, float height) \
@@ -153,9 +161,30 @@ RectangleCollider::RectangleCollider(float mass, float width, float height) \
     RectangleCollider::initAABB();
 }
 
+bool rayHitsSegment(const Ray2 &ray, const Vec3 &A, const Vec3 &B) {
+    Vec3 na = Calculations::normTo(ray.start.unsqueeze(1), A, B);
+    Vec3 nb = Calculations::normTo(ray.start.unsqueeze(1), B, A);
+    Vec3 dir = ray.direction.unsqueeze(0);
+    return (na * dir > 0) && (nb * dir > 0);
+}
+
 bool RectangleCollider::testRay(const Ray2 &ray, float *t, Vec2 *normal) {
     if (aabb->testRay(ray)) {
-        // TODO: calculate hit point
+        auto it = vs.begin();
+        Vec3 O = ray.start.unsqueeze(1);
+        *t = INFINITY;
+        for (int i = 0; i < 4; i++, it++) {
+            auto next = (i == 3) ? vs.begin() : std::next(it);
+            if (rayHitsSegment(ray, *it, *next)) {
+                float D3 = ray.direction * (Calculations::angle2RotMat(m_pi/2) * (*it - *next).squeeze());
+                float D2 = Calculations::cross(*it - O, *next - O).z;
+                float t1 = D2 / D3;
+                if (*t > t1) {
+                    *t = t1;
+                    *normal = Calculations::normTo(*it, *next, O).squeeze();
+                }
+            }
+        }
         return true;
     }
     return false;
@@ -256,6 +285,7 @@ void PolygonCollider::initAABB() {
 
 void PhysicsBody::addCollider(Collider *collider) {
     collider_list.push_back(collider);
+    collider->body = this;
     local_centroid = local_centroid * mass + collider->getCentroidOffset();
     mass += collider->getMass();
     local_centroid = local_centroid / mass;
@@ -292,6 +322,13 @@ void PhysicsBody::setPosition(const Vec2 &p) {
 void StaticBody::addForce(const Vec2& force)
 {/* do nothing */ }
 
+Vec3 StaticBody::velocityVector() {
+    return {0};
+}
+
+void StaticBody::applyImpulse(Vec3 J, Vec3 r)
+{/* do nothing */ }
+
 RigidBody::RigidBody(): PhysicsBody(){
 
 }
@@ -324,6 +361,16 @@ void RigidBody::addTorque(Vec2 force, Vec2 offset) {
 
 void RigidBody::clear() {
     force_n_torque.zero();
+}
+
+Vec3 RigidBody::velocityVector() {
+    return velocity;
+}
+
+void RigidBody::applyImpulse(Vec3 J, Vec3 r) {
+    Vec2 dv = J.squeeze() * mass_inverse;
+    float dw = Calculations::cross(r, J).z * m_inertia_inverse;
+    velocity = velocity + Vec3{dv.x, dv.y, dw};
 }
 
 inline AABB operator+ (const AABB& aabb, const Vec2& v) {

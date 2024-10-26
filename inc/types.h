@@ -106,7 +106,7 @@ class Calculations {
     static size_t argmax(const Container& c, const Comparator& cmp) {
         return std::distance(c.begin(), std::max_element(c.begin(), c.end(), cmp));
     }
-
+    static Vec3 normTo(const Vec3 &A, const Vec3 &B, const Vec3 &O);
     static Vec3 unit(const Vec3 &v);
 };
 inline bool float_equlas(const float a, const float b) {

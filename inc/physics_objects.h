@@ -26,6 +26,7 @@ public:
     Vec3 localToGlobalVec(const Vec3 &p);
 };
 
+class PhysicsBody;
 // describes the geometric shape of colliding objects.
 class Collider: public PhysicsObject {
     // TODO: solve relative offset to the host body.
@@ -34,8 +35,10 @@ protected:
     AABB *baseAABB = nullptr;
     virtual void initInertia() = 0;
     virtual void initAABB() = 0;
-    //PhysicsBody* body;
 public:
+    float restitution = 100;
+    float friction = 0.1;
+    PhysicsBody* body = nullptr;
     bool round_shaped = false;
     explicit Collider(float mass);
     Vec3 getCentroidOffset() const;
@@ -46,6 +49,7 @@ public:
     float getInertia(const Vec3 &host_centroid) const;
     virtual bool testRay(const Ray2 &ray, float *t, Vec2 *normal) = 0;
     virtual Vec3 supportVec(const Vec3& direction) const = 0;
+    virtual float getEffectiveMass(Vec3 r);
     virtual ~Collider();
 };
 
@@ -62,7 +66,6 @@ public:
     Vec3 supportVec(const Vec3& direction) const override;
     void setPose(const Mat3 &pose) override;
     void updateAABB() override;
-
     float radius;
 };
 
@@ -127,6 +130,8 @@ public:
     // TODO: solve place offset when adding
     void addCollider(Collider *collider);
     virtual void addForce(const Vec2 &f) = 0;
+    virtual Vec3 velocityVector() = 0;
+    virtual void applyImpulse(Vec3 J, Vec3 r) = 0;
     void pushAllAABBs(AABBList & list);
     void setPosition(const Vec2 &p) override;
 };
@@ -135,6 +140,8 @@ class StaticBody: public PhysicsBody {
 
 public:
     void addForce(const Vec2& force) override;
+    Vec3 velocityVector() override;
+    void applyImpulse(Vec3 J, Vec3 r) override;
 };
 
 class RigidBody: public PhysicsBody {
@@ -149,6 +156,8 @@ public:
     void addForce(const Vec2 &force) override;
     void addTorque(float torque);
     void addTorque(Vec2 force, Vec2 offset);
+    Vec3 velocityVector() override;
+    void applyImpulse(Vec3 J, Vec3 r) override;
     void clear();
 };
 
