@@ -35,7 +35,7 @@ void TestObj::setPos(const Vec2 &pose) {
 }
 
 TestStatic::TestStatic(int w, int h): StaticBody() {
-    addCollider(new RectangleCollider(1, (float)w, (float)h));
+    addCollider(new RectangleCollider(0, (float)w, (float)h));
     this->w = w;
     this->h = h;
 }

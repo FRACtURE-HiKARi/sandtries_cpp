@@ -9,6 +9,7 @@
 // TODO:? multi-thread when updating objects / refreshing screen
 
 int main(){
+    float speed = 0.5;
     Renderer renderer(320, 640);
     PhysicsEngine e(500);
     e.setRenderer(renderer);
@@ -28,16 +29,25 @@ int main(){
     ));
      */
     TestStatic s(300, 50);
-    e.addRigid(o);
     //e.addStatic(o);
-    e.addStatic(s);
     //o.setRotation(Calculations::angle2RotMat(-m_pi /5));
     o.setPosition({80, 320});
     s.setRotation(Calculations::angle2RotMat(0.2));
     s.setPos({130, 480});
     Scene scene;
+    TestRec o1(30, 30);
+    o1.setPosition({30, 350});
+    TestStatic s1(200, 20);
+    s1.setRotation(Calculations::angle2RotMat(-1.2));
+    s1.setPosition({280, 400});
+    //e.addRigid(o);
+    e.addRigid(o1);
+    e.addStatic(s);
+    e.addStatic(s1);
+    //scene.addVisible(o);
+    scene.addVisible(o1);
     scene.addVisible(s);
-    scene.addVisible(o);
+    scene.addVisible(s1);
     float dt = 1.f/60;
     BeginBatchDraw();
     bool dragging = false;
@@ -49,7 +59,7 @@ int main(){
         cleardevice();
         if (dragging)
             pos = o.global_centroid();
-        e.updateObjects(dt);
+        e.updateObjects(dt*speed);
         if (dragging)
             o.setPosition(pos.squeeze());
         long t_end = clock();

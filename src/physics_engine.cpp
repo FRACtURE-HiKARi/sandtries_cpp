@@ -256,7 +256,6 @@ EPAResult CollisionHandler::EPA(ColliderPair pair, Simplex& s) {
         polygon.push(V);
     }
     Vec3 normal = Calculations::normTo(nearest.first, nearest.second, {0});
-    renderer->addDebugInfo("Num Edges", polygon.edges.size());
     return std::make_pair(last, normal);
 }
 
@@ -267,34 +266,73 @@ EPAResult CollisionHandler::circles(BallCollider* b1, BallCollider* b2) {
     return std::make_pair(dist, dir);
 }
 
-void CollisionHandler::assignImpulse(ColliderPair pair, EPAResult epaResult) {
+void CollisionHandler::assignImpulse(ColliderPair pair, EPAResult epaResult, float dt) {
     Vec3 N = epaResult.second;
-    Vec3 v_rel = pair.first->body->velocityVector() - pair.second->body->velocityVector();
+    Vec3 va = pair.first->body->velocityVector();
+    Vec3 vb = pair.second->body->velocityVector();
+    Vec3 wa = {0, 0, va.z};
+    Vec3 wb = {0, 0, vb.z};
+    va.z = vb.z = 0;
     float e = (pair.first->restitution < pair.second->restitution) ? \
                 pair.first->restitution : pair.second->restitution;
     float miu = (pair.first->friction > pair.second->friction) ? \
                 pair.first->friction : pair.second->friction;
-    float v_rn = v_rel * N;
-    if (v_rn >= 0) return;
-    Vec3 dv_f_dir = Calculations::unit(N * v_rn - v_rel);
-    Vec3 dv = (dv_f_dir * miu + N) * (-(1+e) * v_rn);
     Ray2 ray{pair.first->global_centroid().squeeze(), N.squeeze() * -1};
     float t;
     Vec2 n;
     pair.first->testRay(ray, &t, &n);
-    Vec3 r1 = ray.start.unsqueeze(1) + N*t;
+    Vec3 ra = n.unsqueeze(0) * t * -1;
     ray = {pair.second->global_centroid().squeeze(), N.squeeze()};
     pair.second->testRay(ray, &t, &n);
-    Vec3 r2 = ray.start.unsqueeze(1) + N*t;
-    Vec3 J = dv / (pair.first->getEffectiveMass(r1) + pair.second->getEffectiveMass(r2));
-    pair.first->body->applyImpulse(J, r1);
-    pair.second->body->applyImpulse(J, r2);
+    Vec3 rb = n.unsqueeze(0) * t * -1;
+    Vec3 dv = va + Calculations::cross(wa, ra) - vb - Calculations::cross(wb, rb);
+    float dv_rel = dv * N;
+    if (dv_rel > 0) return;
+
+    Vector V {va.x, va.y, wa.z, vb.x, vb.y, wb.z};
+    Vector J {N.x, N.y, Calculations::cross(N, ra).z, -N.x, -N.y, Calculations::cross(rb, N).z};
+    float ma_i = pair.first->body->mass_inverse;
+    float ia_i = pair.first->body->m_inertia_inverse;
+    float mb_i = pair.second->body->mass_inverse;
+    float ib_i = pair.second->body->m_inertia_inverse;
+    Vector M_inv {ma_i, ma_i, ia_i, mb_i, mb_i, ib_i};
+    Vector tmp(6);
+    Calculations::prodByElement(M_inv, J, tmp);
+    float m_effective = Calculations::dot(tmp, J);
+    float beta = 0.01;
+    float d = (pair.first->global_centroid() - pair.second->global_centroid()) * N;
+    float s_d = 10;
+    float s_v = 5;
+    d = (d > s_d) ? d - s_d : 0;
+    dv_rel = (dv_rel > s_v) ? dv_rel - s_v : 0;
+    float b = -beta * d / dt + dv_rel * e;
+    float lambda = -(Calculations::dot(J, V) + b) / m_effective;
+    renderer->addDebugInfo("d", d);
+    renderer->addDebugInfo("b", b);
+    renderer->addDebugInfo("l", lambda);
+    std::for_each(tmp.begin(), tmp.end(), [&lambda](float &a){a *= lambda;});
+    pair.first->body->addImpulse({tmp[0], tmp[1], tmp[2]});
+    pair.second->body->addImpulse({tmp[3], tmp[4], tmp[5]});
+    // friction
+    /*
+    Vec3 T = {N.y, -N.x, 0};
+    J = {T.x, T.y, Calculations::cross(T, ra).z, -T.x, -T.y, Calculations::cross(rb, T).z};
+    m_effective = Calculations::dot(tmp, J);
+    Calculations::prodByElement(M_inv, J, tmp);
+    dv_rel = dv * T;
+    d = (pair.first->global_centroid() - pair.second->global_centroid()) * T;
+    b = -beta * d / dt + dv_rel * miu;
+    lambda = -(Calculations::dot(J, V) + b) / m_effective;
+    std::for_each(tmp.begin(), tmp.end(), [&lambda](float &a){a *= lambda;});
+    pair.first->body->addImpulse({tmp[0], tmp[1], tmp[2]});
+    pair.second->body->addImpulse({tmp[3], tmp[4], tmp[5]});
+    */
 }
 
 void PhysicsEngine::applyGravity() {
     Vec2 gravityForce = {0, gravity};
     for (RigidBody* object: rigid_bodies) {
-        object->addForce(gravityForce * object->getMass());
+        object->addForce(gravityForce * object->mass);
     }
 }
 
@@ -308,17 +346,16 @@ void PhysicsEngine::updateObjects(float dt) {
     if (gravity != 0) applyGravity();
     for (RigidBody* rb: rigid_bodies) {
         rb->integration(dt);
-        rb->clear();
     }
     ColliderPairList candidates = broadPhase.getAllPairs();
     for (ColliderPair pair: candidates) {
-        circle(20, 20, 10);
+        if ((std::find(static_bodies.begin(), static_bodies.end(), pair.first->body) != static_bodies.end()) \
+            && (std::find(static_bodies.begin(), static_bodies.end(), pair.second->body) != static_bodies.end())
+        ) continue;
         GJKResult gjkResult = handler.GJK(pair);
         if (gjkResult.first) {
-            fillcircle(20, 20, 10);
             EPAResult epaResult = handler.EPA(pair, gjkResult.second);
-            renderer->addDebugInfo("Depth", epaResult.first);
-            handler.assignImpulse(pair, epaResult);
+            handler.assignImpulse(pair, epaResult, dt);
         }
     }
 

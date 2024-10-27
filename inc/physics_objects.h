@@ -8,18 +8,17 @@ typedef std::list<AABB*> AABBList;
 
 class PhysicsObject: public Node {
 protected:
-    float mass;
-    float m_inertia;
-    float mass_inverse;
-    float m_inertia_inverse;
     Vec3 local_centroid{0};
     Mat3 pose_mat{};
     Mat3 pose_mat_inv{};
 public:
+    float mass;
+    float m_inertia;
+    float mass_inverse;
+    float m_inertia_inverse;
     PhysicsObject();
     Vec3 global_centroid() const;
     Mat2 rotation() const;
-    float getMass() const { return mass; }
     virtual void setPosition(const Vec2 &p);
     void setRotation(const Mat2 &r);
     Vec3 globalToLocalVec(const Vec3 &p);
@@ -36,7 +35,7 @@ protected:
     virtual void initInertia() = 0;
     virtual void initAABB() = 0;
 public:
-    float restitution = 100;
+    float restitution = 0.5;
     float friction = 0.1;
     PhysicsBody* body = nullptr;
     bool round_shaped = false;
@@ -131,7 +130,7 @@ public:
     void addCollider(Collider *collider);
     virtual void addForce(const Vec2 &f) = 0;
     virtual Vec3 velocityVector() = 0;
-    virtual void applyImpulse(Vec3 J, Vec3 r) = 0;
+    virtual void addImpulse(const Vec3 &dv) = 0;
     void pushAllAABBs(AABBList & list);
     void setPosition(const Vec2 &p) override;
 };
@@ -141,7 +140,7 @@ class StaticBody: public PhysicsBody {
 public:
     void addForce(const Vec2& force) override;
     Vec3 velocityVector() override;
-    void applyImpulse(Vec3 J, Vec3 r) override;
+    void addImpulse(const Vec3 &dv) override;
 };
 
 class RigidBody: public PhysicsBody {
@@ -157,7 +156,7 @@ public:
     void addTorque(float torque);
     void addTorque(Vec2 force, Vec2 offset);
     Vec3 velocityVector() override;
-    void applyImpulse(Vec3 J, Vec3 r) override;
+    void addImpulse(const Vec3 &dv) override;
     void clear();
 };
 

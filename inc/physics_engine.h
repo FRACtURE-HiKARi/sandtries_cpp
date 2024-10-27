@@ -51,7 +51,7 @@ public:
     GJKResult GJK(ColliderPair pair);
     EPAResult EPA(ColliderPair pair, Simplex& s);
     static EPAResult circles(BallCollider* b1, BallCollider* b2);
-    static void assignImpulse(ColliderPair pair, EPAResult epaResult);
+    void assignImpulse(ColliderPair pair, EPAResult epaResult, float dt);
 };
 
 // TODO: collision and resting

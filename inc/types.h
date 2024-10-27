@@ -4,7 +4,10 @@
 
 #pragma once
 #include <iostream>
+#include "utils.h"
 #define FLOAT_ERROR 1e-5
+
+typedef std::vector<float> Vector;
 
 struct Vec3;
 typedef struct Vec2 {
@@ -83,6 +86,8 @@ Mat3 getInversePose(const Mat3 &p);
 class Calculations {
     public:
     static float dot(const Vec2 &a, const Vec2 &b);
+    static float dot(const Vector &a, const Vector &b);
+    static void prodByElement(const Vector &a, const Vector &b, Vector &dest);
     static float cross(const Vec2 &a, const Vec2 &b);
     static Mat2 angle2RotMat(float angle);
     static float rotMat2Angle(const Mat2& m);

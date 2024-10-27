@@ -85,12 +85,12 @@ void Collider::setPose(const Mat3& pose) {
 
 float Collider::getEffectiveMass(Vec3 r) {
     Vec2 r2 = r.squeeze();
-    return mass + m_inertia_inverse * (r2 * r2);
+    return mass_inverse + m_inertia_inverse * (r2 * r2);
 }
 
 void BallCollider::initInertia() {
     m_inertia = 0.5f * mass * radius * radius;
-    m_inertia_inverse = 1 / m_inertia;
+    m_inertia_inverse = m_inertia == 0 ? 0 : 1 / m_inertia;
 }
 
 BallCollider::BallCollider(float mass, float radius): Collider(mass) {
@@ -144,7 +144,7 @@ void BallCollider::updateAABB() {
 
 void RectangleCollider::initInertia() {
     m_inertia = mass * (h*h + w*w) / 12.0f;
-    m_inertia_inverse = 1 / m_inertia;
+    m_inertia_inverse = m_inertia == 0 ? 0 : 1 / m_inertia;
 }
 
 RectangleCollider::RectangleCollider(float mass, float width, float height) \
@@ -244,7 +244,7 @@ void PolygonCollider::setPosition(const Vec2 &p) {
 }
 
 Vec3 PolygonCollider::supportVec(const Vec3 &direction) const {
-    std::vector<float> dots(size);
+    Vector dots(size);
     Vec3 gc = global_centroid();
     for (int i = 0; i < size; i++) {
         dots[i] = (vs[i] - gc) * direction;
@@ -287,8 +287,8 @@ void PhysicsBody::addCollider(Collider *collider) {
     collider_list.push_back(collider);
     collider->body = this;
     local_centroid = local_centroid * mass + collider->getCentroidOffset();
-    mass += collider->getMass();
-    local_centroid = local_centroid / mass;
+    mass += collider->mass;
+    local_centroid = local_centroid * mass_inverse;
 
     m_inertia += collider->getInertia(local_centroid);
 
@@ -319,15 +319,14 @@ void PhysicsBody::setPosition(const Vec2 &p) {
     updateColliderPos();
 }
 
-void StaticBody::addForce(const Vec2& force)
-{/* do nothing */ }
+void StaticBody::addForce(const Vec2& force) {/* do nothing */ }
 
 Vec3 StaticBody::velocityVector() {
     return {0};
 }
 
-void StaticBody::applyImpulse(Vec3 J, Vec3 r)
-{/* do nothing */ }
+void StaticBody::addImpulse(const Vec3 &dv) {/* do nothing */ }
+
 
 RigidBody::RigidBody(): PhysicsBody(){
 
@@ -344,6 +343,7 @@ void RigidBody::integration(float dt){
     pose_mat = getPose({delta.x, delta.y, 0}) * pose_mat * getPose({0, 0, delta.z});
     pose_mat_inv = getInversePose(pose_mat);
     updateColliderPos();
+    clear();
 }
 
 void RigidBody::addForce(const Vec2 &force) {
@@ -367,10 +367,9 @@ Vec3 RigidBody::velocityVector() {
     return velocity;
 }
 
-void RigidBody::applyImpulse(Vec3 J, Vec3 r) {
-    Vec2 dv = J.squeeze() * mass_inverse;
-    float dw = Calculations::cross(r, J).z * m_inertia_inverse;
-    velocity = velocity + Vec3{dv.x, dv.y, dw};
+// TODO: not this implementation
+void RigidBody::addImpulse(const Vec3 &dv) {
+    velocity = velocity +  dv;
 }
 
 inline AABB operator+ (const AABB& aabb, const Vec2& v) {
@@ -408,7 +407,7 @@ bool AABB::meets(const AABB *a, const AABB *b) {
 }
 
 bool AABB::testRay(const Ray2 &ray) const {
-    std::vector<float> angles;
+    Vector angles;
     angles.reserve(4);
     angles.push_back(std::atan2f(upper_right.y - ray.start.y, upper_right.x - ray.start.x));
     angles.push_back(std::atan2f(upper_right.y - ray.start.y, lower_left.x - ray.start.x));

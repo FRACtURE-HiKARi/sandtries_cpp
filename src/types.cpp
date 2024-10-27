@@ -125,6 +125,21 @@ Vec3 Calculations::normTo(const Vec3 &A, const Vec3 &B, const Vec3 &O) {
     return Calculations::unit(Calculations::cross(Calculations::cross(AB, AO), AB));
 }
 
+float Calculations::dot(const Vector &a, const Vector &b) {
+    float sum = 0;
+    if (a.size() != b.size())
+        throw std::runtime_error("unable to multiply vector of different sizes");
+    for (int i = 0; i < a.size(); i++)
+        sum += a[i] * b[i];
+    return sum;
+}
+
+void Calculations::prodByElement(const Vector &a, const Vector &b, Vector &dest) {
+    if (a.size() != b.size())
+        throw std::runtime_error("unable to multiply vector of different sizes");
+    std::transform(a.begin(), a.end(), b.begin(), dest.begin(), std::multiplies<float>());
+}
+
 Mat2 Mat2::transpose() const{
     return {
         {row1.x, row2.x},
